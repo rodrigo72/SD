@@ -9,7 +9,7 @@
 !sd23.jar
 *.war
 *.ear
-
+!/JobExamples/*.class
 # Maven target directory
 target/
 
