@@ -275,8 +275,6 @@ public class ClientController {
                     Packet packet = this.client.fastReceive(entry.getKey());
                     if (packet != null) {
                         this.jobResults.put(entry.getKey(), packet);
-                    } else {
-                        this.view.waitingForResult(entry.getKey());
                     }
                 }
             }
