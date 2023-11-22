@@ -6,7 +6,8 @@ import Packets.PacketType;
 public enum ClientPacketType implements PacketType {
     REGISTRATION,
     LOGIN,
-    LOGOUT;
+    LOGOUT,
+    JOB;
 
     public int getValue() {
         return this.ordinal();

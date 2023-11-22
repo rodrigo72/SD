@@ -1,6 +1,8 @@
 package Server;
 
 import Client.Registration;
+
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -8,7 +10,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Exceptions.Registration.*;
 
 
-public class RegistrationManager {
+public class RegistrationManager implements Serializable {
     private final ReadWriteLock l;
     private final Map<String, Registration> registrations;
 

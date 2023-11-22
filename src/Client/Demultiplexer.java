@@ -77,6 +77,27 @@ public class Demultiplexer implements Runnable {
         this.thread.start();
     }
 
+    public Packet fastReceive(long id) throws IOException {
+        try {
+            this.l.lock();
+            Entry entry = this.map.get(id);
+            if (entry == null)
+                return null;
+
+            if (entry.queue.isEmpty())
+                return null;
+            
+            Packet reply = entry.queue.poll();
+            if (entry.n_waiting == 0 && entry.queue.isEmpty()) {
+                this.map.remove(id);
+            }
+
+            return reply;
+        } finally {
+            this.l.unlock();
+        }
+    }
+
     public Packet receive(long id) throws InterruptedException {
         try {
             this.l.lock();

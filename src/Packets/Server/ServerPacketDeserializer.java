@@ -12,10 +12,22 @@ public class ServerPacketDeserializer implements Deserializer {
         long id = in.readLong();
 
         switch (type) {
-            case STATUS:
-                return deserializeStatusPacket(id, in);
-            default:
-                return null;
+            case STATUS -> { return deserializeStatusPacket(id, in); }
+            case JOB_RESULT -> { return deserializeJobResultPacket(id, in); }
+            default -> { return null; }
+        }
+    }
+
+    private static Packet deserializeJobResultPacket(long id, DataInputStream in) throws IOException {
+        ServerJobResultPacket.ResultStatus status = ServerJobResultPacket.ResultStatus.values()[in.readInt()];
+        if (status == ServerJobResultPacket.ResultStatus.FAILURE) {
+            String errorMessage = in.readUTF();
+            return new ServerJobResultPacket(id, errorMessage);
+        } else {
+            int dataLength = in.readInt();
+            byte[] data = new byte[dataLength];
+            in.readFully(data);
+            return new ServerJobResultPacket(id, data);
         }
     }
 

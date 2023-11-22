@@ -14,17 +14,36 @@ public class ClientPacketDeserializer implements Deserializer {
         long id = in.readLong();
 
         switch (type) {
-            case REGISTRATION:
-                return deserializeRegistrationPacket(id, in);
-            default:
-                return null;
+            case REGISTRATION -> { return deserializeRegistrationPacket(id, in); }
+            case LOGIN -> { return deserializeLoginPacket(id, in); }
+            case LOGOUT -> { return deserializeLogoutPacket(id, in); }
+            case JOB -> { return deserializeJobPacket(id, in); }
+            default -> { return null; }
         }
+    }
+
+    private static Packet deserializeJobPacket(long id, DataInputStream in) throws IOException {
+        long requiredMemory = in.readLong();
+        int dataLength = in.readInt();
+        byte[] data = new byte[dataLength];
+        in.readFully(data);
+        return new ClientJobPacket(id, requiredMemory, data);
     }
 
     private static Packet deserializeRegistrationPacket(long id, DataInputStream in) throws IOException {
         String name = in.readUTF();
         String password = in.readUTF();
         return new ClientRegistrationPacket(id, name, password);
+    }
+
+    private static Packet deserializeLoginPacket(long id, DataInputStream in) throws IOException {
+        String name = in.readUTF();
+        String password = in.readUTF();
+        return new ClientLoginPacket(id, name, password);
+    }
+
+    private static Packet deserializeLogoutPacket(long id, DataInputStream in) throws IOException {
+        return new ClientLogoutPacket(id);
     }
 }
 

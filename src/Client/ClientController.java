@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 import Packets.Server.*;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import Packets.Packet;
 
 public class ClientController {
     private Client client;
@@ -11,15 +15,36 @@ public class ClientController {
     private Scanner scanner;
     private int option;
     private boolean loggedIn;
+    private Jobs jobs;
+    private Map<Long, Packet> jobResults;
 
     public ClientController(Scanner scanner, ClientView view) {
         this.client = null;
+        this.jobs = null;
         this.view = view;
         this.scanner = scanner;
         this.option = -1;
+        this.jobResults = new HashMap<>();
     }
 
     public void start() {
+
+        while (true) {
+            try {
+                this.view.directoryPrompt();
+                String path = this.scanner.nextLine();
+                
+                if (path.equals("d") || path.equals("default"))
+                    this.jobs = new Jobs("/home/core/SD/JobExamples");
+                else
+                    this.jobs = new Jobs(path);
+
+                this.jobs.readDirectory();
+                break;
+            } catch (IOException e) {
+                this.view.errorReadingDirectory();
+            }
+        }
 
         String address;
         int port;
@@ -29,8 +54,18 @@ public class ClientController {
             try {
                 this.view.serverAddressPrompt();
                 address = this.scanner.nextLine();
+
+                if (address.equals("d") || address.equals("default"))
+                    address = "10.4.4.1";
+
                 this.view.serverPortPrompt();
-                port = Integer.parseInt(this.scanner.nextLine());
+                String portStr = this.scanner.nextLine();
+
+                if (portStr.equals("d") || portStr.equals("default"))
+                    port = 8888;
+                else
+                    port = Integer.parseInt(portStr);
+
                 break;
             } catch (InputMismatchException | NumberFormatException e) {
                 this.view.errorInput();
@@ -51,7 +86,6 @@ public class ClientController {
                 switch (this.option) {
                     case 1 -> this.register();
                     case 2 -> this.login();
-                    case 3 -> this.logout();
                     case 0 -> this.exit();
                     default -> this.view.errorInput();
                 }
@@ -83,11 +117,11 @@ public class ClientController {
             ServerStatusPacket.Status status = packet.getStatus();
             this.view.responseStatus(status.toString());
             switch (status) {
-                case SUCCESS:
-                    this.loggedIn = true;
-                    break;
-                default:
-                    break;
+                case SUCCESS -> { 
+                    this.loggedIn = true; 
+                    this.loggedInMenu();
+                }
+                default -> { this.view.failedRegistration(); }
             }
 
         } catch (InterruptedException e) {
@@ -105,11 +139,51 @@ public class ClientController {
         }
 
         this.getCredentials();
-        // this.client.login();
+
+        try {
+            long id = this.client.sendLogin();
+            this.view.waiting();
+            ServerStatusPacket packet = (ServerStatusPacket) this.client.receive(id);
+            ServerStatusPacket.Status status = packet.getStatus();
+            this.view.responseStatus(status.toString());
+            switch (status) {
+                case SUCCESS -> { 
+                    this.loggedIn = true; 
+                    this.loggedInMenu();
+                }
+                default -> { this.view.failedLogin(); }
+            }
+
+        } catch (InterruptedException e) {
+            this.view.errorInterrupted();
+        } catch (IOException  e) {
+            this.view.errorIO();
+        }
     }
 
     public void logout() {
-        // this.client.logout();
+
+        if (!this.loggedIn) {
+            this.view.notLoggedIn();
+            return;
+        }
+
+        try {
+            long id = this.client.sendLogout();
+            this.view.waiting();
+            ServerStatusPacket packet = (ServerStatusPacket) this.client.receive(id);
+            ServerStatusPacket.Status status = packet.getStatus();
+            this.view.responseStatus(status.toString());
+            switch (status) {
+                case SUCCESS -> { this.loggedIn = false; }
+                default -> { this.view.failedLogout(); }
+            }
+        } catch (InterruptedException e) {
+            this.view.errorInterrupted();
+        } catch (IOException  e) {
+            this.view.errorIO();
+        }
+        
     }
 
     public void exit() throws IOException {
@@ -133,6 +207,94 @@ public class ClientController {
         }
         this.client.createRegistration(name, password);
         this.view.print("");
+    }
+
+    public void loggedInMenu() {
+        while (this.option != 0) {
+            this.view.loggedInMenu();
+            try {
+                this.option = Integer.parseInt(this.scanner.nextLine());
+                this.view.print("");
+
+                switch (this.option) {
+                    case 1 -> this.listJobs();
+                    case 2 -> this.listJobResults();
+                    case 0 -> this.logout();
+                    default -> this.view.errorInput();
+                }
+
+            } catch (InputMismatchException | NumberFormatException e) {
+                this.view.errorInput();
+            } catch (Exception e) {
+                this.view.errorInterrupted();
+                break;
+            }
+        }
+        this.option = -1;
+    }
+
+    public void listJobs() {
+        List<String> jobs = this.jobs.getJobNames();
+        this.view.printJobs(jobs);
+        while (this.option != 0) {
+            try {
+                this.view.sendJobPrompt();
+                this.option = Integer.parseInt(this.scanner.nextLine());
+
+                if (this.option == 0)
+                    break;
+
+                byte[] job = this.jobs.getJob(jobs.get(this.option - 1));
+
+                if (job == null) {
+                    this.view.errorInput();
+                    continue;
+                }
+
+                this.view.requiredMemoryPrompt();
+                int memory = Integer.parseInt(this.scanner.nextLine());
+
+                long id = this.client.sendJob(memory, job);
+                this.jobResults.put(id, null);
+
+            } catch (InputMismatchException | NumberFormatException e) {
+                this.view.errorInput();
+            } catch (Exception e) {
+                this.view.errorInterrupted();
+                break;
+            }
+        }
+        this.option = -1;
+    }
+
+    public void listJobResults() {
+        try {
+
+            for (Map.Entry<Long, Packet> entry : this.jobResults.entrySet()) {
+                if (entry.getValue() == null) {
+                    Packet packet = this.client.fastReceive(entry.getKey());
+                    if (packet != null) {
+                        this.jobResults.put(entry.getKey(), packet);
+                    } else {
+                        this.view.waitingForResult(entry.getKey());
+                    }
+                }
+            }
+
+            for (Map.Entry<Long, Packet> entry : this.jobResults.entrySet()) {
+                if (entry.getValue() != null) {
+                    this.view.print(entry.getValue().toString());
+                } else {
+                    this.view.waitingForResult(entry.getKey());
+                }
+            }
+
+        } catch (InputMismatchException | NumberFormatException e) {
+            this.view.errorInput();
+        } catch (Exception e) {
+            this.view.errorInterrupted();
+        }
+        this.option = -1;
     }
 
     public static void main(String[] args) {

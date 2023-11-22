@@ -12,12 +12,26 @@ public class ServerPacketSerializer implements Serializer {
         out.writeLong(packet.getId());
 
         switch ((ServerPacketType) packet.getType()) {
-            case STATUS:
+            case STATUS -> {
                 ServerStatusPacket statusPacket = (ServerStatusPacket) packet;
                 serializeStatusPacket(out, statusPacket);
-                break;
-            default:
-                break;
+            }
+            case JOB_RESULT -> {
+                ServerJobResultPacket jobResultPacket = (ServerJobResultPacket) packet;
+                serializeJobResultPacket(out, jobResultPacket);
+            }
+            default -> { return; }
+        }
+    }
+
+    private static void serializeJobResultPacket(DataOutputStream out, ServerJobResultPacket packet) throws IOException {
+        ServerJobResultPacket.ResultStatus status = packet.getStatus();
+        out.writeInt(status.ordinal());
+        if (status == ServerJobResultPacket.ResultStatus.FAILURE) {
+            out.writeUTF(packet.getErrorMessage());
+        } else {
+            out.writeInt(packet.getData().length);
+            out.write(packet.getData());
         }
     }
 

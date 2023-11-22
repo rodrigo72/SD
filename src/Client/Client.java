@@ -4,18 +4,17 @@ import java.net.Socket;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import Packets.Client.ClientPacketSerializer;
-import Packets.Client.ClientRegistrationPacket;
+import Packets.Client.*;
 import Packets.Server.ServerPacketDeserializer;
 import Packets.Packet;
 
 public class Client {
 
+    private long nextId;
     private Registration registration;
     private final DataInputStream in;
     private final DataOutputStream out;
     private final Socket socket;
-    private long nextId;
     private final ClientPacketSerializer serializer;
     private final Demultiplexer demultiplexer;
     private final ServerPacketDeserializer deserializer;
@@ -66,8 +65,38 @@ public class Client {
         return id;
     }
 
+    public long sendLogin() throws IOException {
+        long id = this.getNextId();
+        ClientLoginPacket packet = new ClientLoginPacket(
+            id, 
+            this.registration.getName(), 
+            this.registration.getPassword()
+        );
+        this.serializer.serialize(out, packet);
+        return id;
+    }
+
+    public long sendLogout() throws IOException {
+        long id = this.getNextId();
+        ClientLogoutPacket packet = new ClientLogoutPacket(id);
+        this.serializer.serialize(out, packet);
+        return id;
+    }
+
+    public long sendJob(int requiredMemory, byte[] job) throws IOException {
+        long id = this.getNextId();
+        ClientJobPacket packet = new ClientJobPacket(id, requiredMemory, job);
+        this.serializer.serialize(out, packet);
+        return id;
+    }
+
     public Packet receive(long id) throws IOException, InterruptedException {
         Packet packet = this.demultiplexer.receive(id);
+        return packet;
+    }
+
+    public Packet fastReceive(long id) throws IOException, InterruptedException {
+        Packet packet = this.demultiplexer.fastReceive(id);
         return packet;
     }
 
