@@ -18,6 +18,7 @@ public class ClientPacketDeserializer implements Deserializer {
             case LOGIN -> { return deserializeLoginPacket(id, in); }
             case LOGOUT -> { return deserializeLogoutPacket(id, in); }
             case JOB -> { return deserializeJobPacket(id, in); }
+            case GET_INFO -> { return deserializeServerStatusPacket(id, in); }
             default -> { return null; }
         }
     }
@@ -44,6 +45,10 @@ public class ClientPacketDeserializer implements Deserializer {
 
     private static Packet deserializeLogoutPacket(long id, DataInputStream in) throws IOException {
         return new ClientLogoutPacket(id);
+    }
+
+    private static Packet deserializeServerStatusPacket(long id, DataInputStream in) throws IOException {
+        return new ClientServerStatusPacket(id);
     }
 }
 

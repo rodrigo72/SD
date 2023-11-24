@@ -22,7 +22,7 @@ public class ServerWorker implements Runnable {
 
             Packet packet = job.run();
             System.out.println("Finished job, sending packet to thread " + job.getThreadId() + ".");
-            this.sharedState.sendJobResult(job.getThreadId(), packet);
+            this.sharedState.sendJobResult(job.getThreadId(), job.getRequiredMemory(), packet);
             System.out.println("Packet sent to thread");
         }
     }

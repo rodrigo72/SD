@@ -14,6 +14,7 @@ public class ServerPacketDeserializer implements Deserializer {
         switch (type) {
             case STATUS -> { return deserializeStatusPacket(id, in); }
             case JOB_RESULT -> { return deserializeJobResultPacket(id, in); }
+            case INFO -> { return deserializeInfoPacket(id, in); }
             default -> { return null; }
         }
     }
@@ -34,5 +35,15 @@ public class ServerPacketDeserializer implements Deserializer {
     private static Packet deserializeStatusPacket(long id, DataInputStream in) throws IOException {
         ServerStatusPacket.Status status = ServerStatusPacket.Status.values()[in.readInt()];
         return new ServerStatusPacket(id, status);
+    }
+
+    private static Packet deserializeInfoPacket(long id, DataInputStream in) throws IOException {
+        long maxMemory = in.readLong();
+        long availableMemory = in.readLong();
+        int queueSize = in.readInt();
+        int nConnections = in.readInt();
+        int nWorkers = in.readInt();
+        int nWorkersWaiting = in.readInt();
+        return new ServerInfoPacket(id, maxMemory, availableMemory, queueSize, nConnections, nWorkers, nWorkersWaiting);
     }
 }

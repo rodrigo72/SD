@@ -97,6 +97,13 @@ public class Client implements ClientAPI {
         return id;
     }
 
+    public long sendGetInfo() throws IOException {
+        long id = this.getNextId();
+        ClientServerStatusPacket packet = new ClientServerStatusPacket(id);
+        this.serializer.serialize(out, packet);
+        return id;
+    }
+
     public Packet receive(long id) throws IOException, InterruptedException {
         Packet packet = this.demultiplexer.receive(id);
         if (packet.getType() == ServerPacketType.JOB_RESULT) {

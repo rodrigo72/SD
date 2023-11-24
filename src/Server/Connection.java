@@ -55,12 +55,19 @@ public class Connection implements Runnable {
     }
 
     public void sendPackets() {
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 this.l.lock();
 
-                while (this.packetsToSend.queue.isEmpty())
-                    this.packetsToSend.notEmpty.await();
+                while (this.packetsToSend.queue.isEmpty()) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    } else {
+                        this.packetsToSend.notEmpty.await();
+                    }
+                }
+
+                System.out.println("Sending packet.");
 
                 Packet packet = this.packetsToSend.queue.poll();
                 this.serializer.serialize(out, packet);
@@ -69,8 +76,7 @@ public class Connection implements Runnable {
                 if (this.debug)
                     System.out.println("sendPackets: " +  e);
             } catch (InterruptedException e) {
-                if (this.debug)
-                    System.out.println("sendPackets: " +  e);
+                // nothing
             } finally {
                 this.l.unlock();
             }
@@ -114,6 +120,9 @@ public class Connection implements Runnable {
                     case JOB -> {
                         this.handleJobPacket(p, id);
                     }
+                    case GET_INFO -> {
+                        this.handleInfoPacket(p, id);
+                    }
                     default -> {
                         ServerStatusPacket statusPacket = new ServerStatusPacket(id, ServerStatusPacket.Status.ERROR);
                         this.addPacketToQueue(statusPacket);
@@ -125,6 +134,17 @@ public class Connection implements Runnable {
         } catch (IOException e) {
             if (this.debug)
                 System.out.println("Connection: " + e.getMessage());
+
+            try {
+                this.l.lock();
+                this.outputThread.interrupt();
+                this.packetsToSend.notEmpty.signal();
+            } finally {
+                this.l.unlock();
+            }
+
+            this.sharedState.removeConnection(threadId);
+
             try {
                 this.registrationManager.logout(clientName);
             } catch (RegistrationDoesNotExist e2) {
@@ -215,4 +235,24 @@ public class Connection implements Runnable {
         this.sharedState.enqueueJob(job);
     }
     
+    private void handleInfoPacket(Packet p, long id) throws IOException {
+        if (!this.loggedIn) {
+            ServerStatusPacket statusPacket = new ServerStatusPacket(id, ServerStatusPacket.Status.ERROR);
+            this.serializer.serialize(out, statusPacket);
+            return;
+        }
+
+        ServerInfoPacket packet = new ServerInfoPacket(
+            id,
+            this.sharedState.getMaxMemory(),
+            this.sharedState.getAvailableMemory(),
+            this.sharedState.getQueueSize(),
+            this.sharedState.getNConnections(),
+            this.sharedState.getNWorkers(),
+            this.sharedState.getNWorkersWaiting()
+        );
+
+        this.serializer.serialize(out, packet);
+    }
+
 }

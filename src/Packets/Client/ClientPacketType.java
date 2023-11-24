@@ -7,7 +7,8 @@ public enum ClientPacketType implements PacketType {
     REGISTRATION,
     LOGIN,
     LOGOUT,
-    JOB;
+    JOB,
+    GET_INFO;
 
     public int getValue() {
         return this.ordinal();

@@ -27,6 +27,9 @@ public class ClientPacketSerializer implements Serializer {
                 ClientJobPacket jobPacket = (ClientJobPacket) packet;
                 serializeJobPacket(out, jobPacket);
             }
+            case GET_INFO -> {
+                // No additional data to serialize
+            }
             default -> {}
         }
     }

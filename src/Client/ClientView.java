@@ -22,6 +22,7 @@ public class ClientView {
         this.print("---------------------------------");
         this.print("  1. List jobs");
         this.print("  2. List job results");
+        this.print("  3. Get info");
         this.print("  0. Logout");
         this.print("---------------------------------");
     }

@@ -20,6 +20,10 @@ public class ServerPacketSerializer implements Serializer {
                 ServerJobResultPacket jobResultPacket = (ServerJobResultPacket) packet;
                 serializeJobResultPacket(out, jobResultPacket);
             }
+            case INFO -> {
+                ServerInfoPacket infoPacket = (ServerInfoPacket) packet;
+                serializeInfoPacket(out, infoPacket);
+            }
             default -> { return; }
         }
     }
@@ -37,5 +41,14 @@ public class ServerPacketSerializer implements Serializer {
 
     private static void serializeStatusPacket(DataOutputStream out, ServerStatusPacket packet) throws IOException {
         out.writeInt(packet.getStatus().ordinal());
+    }
+
+    private static void serializeInfoPacket(DataOutputStream out, ServerInfoPacket packet) throws IOException {
+        out.writeLong(packet.getMaxMemory());
+        out.writeLong(packet.getAvailableMemory());
+        out.writeInt(packet.getQueueSize());
+        out.writeInt(packet.getNConnections());
+        out.writeInt(packet.getNWorkers());
+        out.writeInt(packet.getNWorkersWaiting());
     }
 }

@@ -10,7 +10,7 @@ import Packets.Packet;
 import java.util.Collections;
 
 public class ClientController {
-    private Client client;
+    private ClientAPI client;
     private ClientView view;
     private Scanner scanner;
     private int option;
@@ -70,16 +70,15 @@ public class ClientController {
                 else
                     port = Integer.parseInt(portStr);
 
-                break;
+                try {
+                    this.client = new Client(address, port, this.jobs);
+                    break;
+                } catch (IOException e) {
+                    this.view.errorIO();
+                }
             } catch (InputMismatchException | NumberFormatException e) {
                 this.view.errorInput();
             }
-        }
-
-        try {
-            this.client = new Client(address, port, this.jobs);
-        } catch (IOException e) {
-            this.view.errorIO();
         }
 
         while (this.option != 0) {
@@ -223,6 +222,7 @@ public class ClientController {
                 switch (this.option) {
                     case 1 -> this.listJobs();
                     case 2 -> this.listJobResults();
+                    case 3 -> this.getInfo();
                     case 0 -> this.logout();
                     default -> this.view.errorInput();
                 }
@@ -235,6 +235,24 @@ public class ClientController {
             }
         }
         this.option = -1;
+    }
+
+    public void getInfo() {
+        if (!this.loggedIn) {
+            this.view.notLoggedIn();
+            return;
+        }
+
+        try {
+            long id = this.client.sendGetInfo();
+            this.view.waiting();
+            ServerInfoPacket packet = (ServerInfoPacket) this.client.receive(id);
+            this.view.print(packet.toString());
+        } catch (IOException e) {
+            this.view.errorIO();
+        } catch (InterruptedException e) {
+            this.view.errorInterrupted();
+        }
     }
 
     public void listJobs() {
