@@ -26,7 +26,7 @@ public class ClientView {
         this.print("---------------------------------");
     }
 
-    public void start()                         { this.print("Client starting ..."); }
+    public void start()                         { this.print("\nClient starting ...\n"); }
     public void exit()                          { this.print("Exiting ..."); }
     public void waiting()                       { this.print("Waiting for server response ..."); }
     public void responseStatus(String status)   { this.print("Server response: " + status); }
@@ -43,7 +43,8 @@ public class ClientView {
     public void failedRegistration()            { this.print("Failed to register."); }
     public void failedLogout()                  { this.print("Failed to logout."); }
     public void notLoggedIn()                   { this.print("Not logged in."); }
-    public void directoryPrompt()               { this.print(" > Enter directory path: "); } 
+    public void jobDirPrompt()                  { this.print(" > Enter job directory path: "); } 
+    public void jobResultDirPrompt()            { this.print(" > Enter job result directory path: "); }
     public void errorReadingDirectory()         { this.print("Error reading directory."); }
     public void sendJobPrompt()                 { this.print(" > Select job send: [0 - exit]"); }
     public void requiredMemoryPrompt()          { this.print(" > Enter required memory: "); }
@@ -58,5 +59,4 @@ public class ClientView {
         }
         this.print(str.toString());
     }
-
 }

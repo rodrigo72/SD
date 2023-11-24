@@ -1,12 +1,9 @@
-package Client;
+package Utils;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.io.DataInputStream;
-import java.util.Queue;
-import java.util.concurrent.locks.Condition;
-import java.util.ArrayDeque;
 import Packets.Packet;
 import Packets.Deserializer;
 import java.io.IOException;
@@ -14,24 +11,12 @@ import java.util.concurrent.TimeUnit;
 
 public class Demultiplexer implements Runnable {
     
-    private Map<Long, Entry> map;
+    private Map<Long, ConditionQueue<Packet>> map;
     private final DataInputStream in;
     private ReentrantLock l;
     private Deserializer deserializer;
     private Thread thread;
     private volatile boolean running;
-
-    private class Entry {
-        int n_waiting;
-        Queue<Packet> queue;
-        Condition notEmpty;
-
-        public Entry() {
-            this.n_waiting = 0;
-            this.queue = new ArrayDeque<>();
-            this.notEmpty = l.newCondition();
-        }
-    }
 
     public Demultiplexer(DataInputStream in, Deserializer deserializer) {
         this.in = in;
@@ -57,9 +42,9 @@ public class Demultiplexer implements Runnable {
                 try {
                     this.l.lockInterruptibly();
 
-                    Entry entry = this.map.get(packet.getId());
+                    ConditionQueue<Packet> entry = this.map.get(packet.getId());
                     if (entry == null) {
-                        entry = new Entry();
+                        entry = new ConditionQueue<>(this.l);
                         this.map.put(packet.getId(), entry);
                     }
 
@@ -73,6 +58,7 @@ public class Demultiplexer implements Runnable {
                 }
             }
         });
+        
         this.running = true;
         this.thread.start();
     }
@@ -80,7 +66,7 @@ public class Demultiplexer implements Runnable {
     public Packet fastReceive(long id) throws IOException {
         try {
             this.l.lock();
-            Entry entry = this.map.get(id);
+            ConditionQueue<Packet> entry = this.map.get(id);
             if (entry == null)
                 return null;
 
@@ -102,9 +88,9 @@ public class Demultiplexer implements Runnable {
         try {
             this.l.lock();
             
-            Entry entry = this.map.get(id);
+            ConditionQueue<Packet> entry = this.map.get(id);
             if (entry == null) {
-                entry = new Entry();
+                entry = new ConditionQueue<>(this.l);
                 this.map.put(id, entry);
             }
 
@@ -134,5 +120,4 @@ public class Demultiplexer implements Runnable {
             this.thread.interrupt();
             this.thread = null;
     }
-    
 }

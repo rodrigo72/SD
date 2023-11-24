@@ -1,13 +1,13 @@
 package Client;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 import Packets.Server.*;
 import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
 import Packets.Packet;
+import java.util.Collections;
 
 public class ClientController {
     private Client client;
@@ -15,8 +15,7 @@ public class ClientController {
     private Scanner scanner;
     private int option;
     private boolean loggedIn;
-    private Jobs jobs;
-    private Map<Long, Packet> jobResults;
+    private JobManager jobs;
 
     public ClientController(Scanner scanner, ClientView view) {
         this.client = null;
@@ -24,21 +23,27 @@ public class ClientController {
         this.view = view;
         this.scanner = scanner;
         this.option = -1;
-        this.jobResults = new HashMap<>();
     }
 
     public void start() {
 
+        this.view.start();
+
         while (true) {
             try {
-                this.view.directoryPrompt();
+                this.view.jobDirPrompt();
                 String path = this.scanner.nextLine();
+
+                this.view.jobResultDirPrompt();
+                String resultPath = this.scanner.nextLine();
                 
                 if (path.equals("d") || path.equals("default"))
-                    this.jobs = new Jobs("/home/core/SD/JobExamples");
-                else
-                    this.jobs = new Jobs(path);
+                    path = "/home/core/SD/JobExamples";
+                
+                if (resultPath.equals("d") || resultPath.equals("default"))
+                    resultPath = "/home/core/SD/JobResults";
 
+                this.jobs = new JobManager(path, resultPath);
                 this.jobs.readDirectory();
                 break;
             } catch (IOException e) {
@@ -49,7 +54,6 @@ public class ClientController {
         String address;
         int port;
 
-        this.view.start();
         while (true) {
             try {
                 this.view.serverAddressPrompt();
@@ -73,7 +77,7 @@ public class ClientController {
         }
 
         try {
-            this.client = new Client(address, port);
+            this.client = new Client(address, port, this.jobs);
         } catch (IOException e) {
             this.view.errorIO();
         }
@@ -254,9 +258,7 @@ public class ClientController {
                 this.view.requiredMemoryPrompt();
                 int memory = Integer.parseInt(this.scanner.nextLine());
 
-                long id = this.client.sendJob(memory, job);
-                this.jobResults.put(id, null);
-
+                this.client.sendJob(memory, job);
             } catch (InputMismatchException | NumberFormatException e) {
                 this.view.errorInput();
             } catch (Exception e) {
@@ -270,26 +272,19 @@ public class ClientController {
     public void listJobResults() {
         try {
 
-            for (Map.Entry<Long, Packet> entry : this.jobResults.entrySet()) {
-                if (entry.getValue() == null) {
-                    Packet packet = this.client.fastReceive(entry.getKey());
-                    if (packet != null) {
-                        this.jobResults.put(entry.getKey(), packet);
-                    }
-                }
-            }
+            List<Packet> packets = this.client.getJobResults();
 
-            for (Map.Entry<Long, Packet> entry : this.jobResults.entrySet()) {
-                if (entry.getValue() != null) {
-                    this.view.print(entry.getValue().toString());
-                } else {
-                    this.view.waitingForResult(entry.getKey());
-                }
+            if (packets.isEmpty()) {
+                this.view.print("No results");
+            } else {
+                Collections.sort(packets, Comparator.comparingLong(Packet::getId));
+                List<String> jobs = packets.stream().map(Packet::toString).toList();
+                this.view.printJobs(jobs);
             }
-
         } catch (InputMismatchException | NumberFormatException e) {
             this.view.errorInput();
         } catch (Exception e) {
+            System.out.println(e.getMessage());
             this.view.errorInterrupted();
         }
         this.option = -1;

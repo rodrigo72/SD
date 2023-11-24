@@ -20,7 +20,7 @@ public class RegistrationManager implements Serializable {
     }
 
     public void register(String username, String password) throws AlreadyRegisteredException {
-        Registration registration = new Registration(username, password);
+        Registration registration = new Registration(username, password, true);
         try {
             this.l.writeLock().lock();
             if (this.registrations.containsKey(registration.getName()))
@@ -42,16 +42,38 @@ public class RegistrationManager implements Serializable {
         }
     }
 
-    public void login(String username, String password) throws RegistrationDoesNotExist, InvalidPasswordException {
+    public void login(String username, String password) throws RegistrationDoesNotExist, InvalidPasswordException, AlreadyConnectedException {
         try {
-            this.l.readLock().lock();
+            this.l.writeLock().lock();
             if (!this.registrations.containsKey(username))
                 throw new RegistrationDoesNotExist("Username " + username + " does not exist");
             Registration registration = this.registrations.get(username);
+
+            if (registration.getLoggedIn()) 
+                throw new AlreadyConnectedException("Client is already connected on another device.");
+
             if (!registration.getPassword().equals(password))
                 throw new InvalidPasswordException(password + " is not the correct password for " + username);
+
+            registration.setLoggedInt(true);
         } finally {
-            this.l.readLock().unlock();
+            this.l.writeLock().unlock();
+        }
+    }
+
+    public void logout(String username) throws RegistrationDoesNotExist {
+        try {
+            this.l.writeLock().lock();
+            
+            if (!this.registrations.containsKey(username))
+                throw new RegistrationDoesNotExist("Username " + username + " does not exist");
+            Registration registration = this.registrations.get(username);
+
+            if (registration.getLoggedIn()) {
+                registration.setLoggedInt(false);
+            }
+        } finally {
+            this.l.writeLock().unlock();
         }
     }
 }
