@@ -19,7 +19,7 @@ public class Server {
         this.debug = debug;
         this.connections = new HashMap<>();
         this.registrationManager = new RegistrationManager();
-        this.sharedState = new SharedState(1000);
+        this.sharedState = new SharedState(10);
     }
 
     public void run() {

@@ -144,6 +144,7 @@ public class Connection implements Runnable {
             }
 
             this.sharedState.removeConnection(threadId);
+            this.sharedState.removeClientThread(clientName);
 
             try {
                 this.registrationManager.logout(clientName);
@@ -170,6 +171,7 @@ public class Connection implements Runnable {
             this.registrationManager.register(name, password);
             this.loggedIn = true;
             this.clientName = name;
+            this.sharedState.addClientThread(name, this.threadId);
         } catch (AlreadyRegisteredException e) {
             statusPacket.setStatus(ServerStatusPacket.Status.ERROR);
             this.loggedIn = false;
@@ -195,6 +197,7 @@ public class Connection implements Runnable {
             this.registrationManager.login(name, password);
             this.loggedIn = true;
             this.clientName = name;
+            this.sharedState.addClientThread(name, this.threadId);
         } catch (RegistrationDoesNotExist | InvalidPasswordException | AlreadyConnectedException e) {
             statusPacket.setStatus(ServerStatusPacket.Status.ERROR);
             this.loggedIn = false;
@@ -215,6 +218,7 @@ public class Connection implements Runnable {
         try {
             this.registrationManager.logout(clientName);
             this.loggedIn = false;
+            this.sharedState.removeClientThread(clientName);
         } catch (RegistrationDoesNotExist e) {
             statusPacket.setStatus(ServerStatusPacket.Status.ERROR);
         }
@@ -230,7 +234,7 @@ public class Connection implements Runnable {
         }
 
         ClientJobPacket packet = (ClientJobPacket) p;
-        Job job = new Job(this.clientName, packet.getRequiredMemory(), id, packet.getData(), this.threadId);
+        Job job = new Job(this.clientName, packet.getRequiredMemory(), id, packet.getData());
 
         this.sharedState.enqueueJob(job);
     }

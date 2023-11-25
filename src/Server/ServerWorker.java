@@ -21,8 +21,8 @@ public class ServerWorker implements Runnable {
                 continue;
 
             Packet packet = job.run();
-            System.out.println("Finished job, sending packet to thread " + job.getThreadId() + ".");
-            this.sharedState.sendJobResult(job.getThreadId(), job.getRequiredMemory(), packet);
+            System.out.println("Finished job, sending packet to client " + job.getClientName() + ".");
+            this.sharedState.sendJobResult(job.getClientName(), job.getRequiredMemory(), packet);
             System.out.println("Packet sent to thread");
         }
     }

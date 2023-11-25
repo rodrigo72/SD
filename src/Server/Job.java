@@ -9,16 +9,14 @@ public class Job implements Measurable {
 
     private final long requiredMemory;
     private final long id;
-    private final long threadId;
     private final byte[] data;
     private final String clientName;
 
-    public Job(String clientName, long requiredMemory, long id, byte[] data, long threadId) {
+    public Job(String clientName, long requiredMemory, long id, byte[] data) {
         this.requiredMemory = requiredMemory;
         this.id = id;
         this.data = data;
         this.clientName = clientName;
-        this.threadId = threadId;
     }
 
     public Packet run() {
@@ -42,10 +40,6 @@ public class Job implements Measurable {
 
     public long getId() {
         return this.id;
-    }
-
-    public long getThreadId() {
-        return this.threadId;
     }
 
     public long measure() {
