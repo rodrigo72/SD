@@ -3,8 +3,9 @@ package Server;
 import sd23.*;
 import Packets.Server.ServerJobResultPacket;
 import Packets.Packet;
+import Utils.Measurable;
 
-public class Job {
+public class Job implements Measurable {
 
     private final long requiredMemory;
     private final long id;
@@ -45,5 +46,9 @@ public class Job {
 
     public long getThreadId() {
         return this.threadId;
+    }
+
+    public long measure() {
+        return this.requiredMemory;
     }
 }
