@@ -131,12 +131,14 @@ public class SharedState {
             Job job = this.jobs.poll(this.memoryLimit);
             
             int timesWaited = 0;
-            while (job.getRequiredMemory() + this.memoryUsed > this.memoryLimit 
-            || (this.nBlocking > 0 && timesWaited < this.maxTimesWaited)) {
+            boolean blocking = false;
+            while (job.getRequiredMemory() + this.memoryUsed > this.memoryLimit || (this.nBlocking > 0 && !blocking)) {
                 this.hasMemory.await();
                 timesWaited += 1;
-                if (timesWaited == this.maxTimesWaited)
+                if (!blocking && timesWaited >= this.maxTimesWaited) {
+                    blocking = true;
                     this.nBlocking += 1;
+                }
             }
 
             this.nWaiting -= 1;

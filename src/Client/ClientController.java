@@ -222,7 +222,8 @@ public class ClientController {
                 switch (this.option) {
                     case 1 -> this.listJobs();
                     case 2 -> this.listJobResults();
-                    case 3 -> this.getInfo();
+                    case 3 -> this.listJobRequestsSent();
+                    case 4 -> this.getInfo();
                     case 0 -> this.logout();
                     default -> this.view.errorInput();
                 }
@@ -294,6 +295,27 @@ public class ClientController {
 
             if (packets.isEmpty()) {
                 this.view.print("No results");
+            } else {
+                Collections.sort(packets, Comparator.comparingLong(Packet::getId));
+                List<String> jobs = packets.stream().map(Packet::toString).toList();
+                this.view.printJobs(jobs);
+            }
+        } catch (InputMismatchException | NumberFormatException e) {
+            this.view.errorInput();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            this.view.errorInterrupted();
+        }
+        this.option = -1;
+    }
+    
+    public void listJobRequestsSent() {
+        try {
+
+            List<Packet> packets = this.client.getJobRequests();
+
+            if (packets.isEmpty()) {
+                this.view.print("No job requests sent on this connection.");
             } else {
                 Collections.sort(packets, Comparator.comparingLong(Packet::getId));
                 List<String> jobs = packets.stream().map(Packet::toString).toList();
