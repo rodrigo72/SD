@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import Exceptions.Registration.*;
+import Exceptions.*;
 
 
 public class RegistrationManager implements Serializable {

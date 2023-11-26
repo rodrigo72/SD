@@ -48,7 +48,7 @@ public class ClientView {
     public void jobDirPrompt()                  { this.print(" > Enter job directory path: "); } 
     public void jobResultDirPrompt()            { this.print(" > Enter job result directory path: "); }
     public void errorReadingDirectory()         { this.print("Error reading directory."); }
-    public void sendJobPrompt()                 { this.print(" > Select job send: [0 - exit]"); }
+    public void sendJobPrompt()                 { this.print(" > Select job to send: [0 - exit]"); }
     public void requiredMemoryPrompt()          { this.print(" > Enter required memory: "); }
     public void waitingForResult(long id)       { this.print("Still waiting for result (" + id + ")"); }
 

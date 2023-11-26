@@ -9,6 +9,7 @@ import Packets.Deserializer;
 
 public class ClientPacketDeserializer implements Deserializer {
 
+    @Override
     public Packet deserialize(DataInputStream in) throws IOException {
         ClientPacketType type = PacketType.deserialize(in, ClientPacketType.class);
         long id = in.readLong();

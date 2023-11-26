@@ -1,4 +1,4 @@
-package Exceptions.Registration;
+package Exceptions;
 
 public class RegistrationException extends Exception {
     public RegistrationException(String message) {

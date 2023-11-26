@@ -1,4 +1,4 @@
-package Exceptions.Registration;
+package Exceptions;
 
 public class InvalidPasswordException extends RegistrationException {
     public InvalidPasswordException(String message) {

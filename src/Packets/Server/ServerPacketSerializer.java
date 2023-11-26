@@ -7,6 +7,8 @@ import Packets.PacketType;
 import Packets.Serializer;
 
 public class ServerPacketSerializer implements Serializer {
+    
+    @Override
     public void serialize(DataOutputStream out, Packet packet) throws IOException {
         PacketType.serialize(packet.getType(), out);
         out.writeLong(packet.getId());
@@ -23,6 +25,10 @@ public class ServerPacketSerializer implements Serializer {
             case INFO -> {
                 ServerInfoPacket infoPacket = (ServerInfoPacket) packet;
                 serializeInfoPacket(out, infoPacket);
+            }
+            case JOB -> {
+                ServerJobPacket jobPacket = (ServerJobPacket) packet;
+                serializeJobPacket(out, jobPacket);
             }
             default -> { return; }
         }
@@ -50,5 +56,12 @@ public class ServerPacketSerializer implements Serializer {
         out.writeInt(packet.getNConnections());
         out.writeInt(packet.getNWorkers());
         out.writeInt(packet.getNWorkersWaiting());
+    }
+
+    private static void serializeJobPacket(DataOutputStream out, ServerJobPacket packet) throws IOException {
+        out.writeUTF(packet.getClientName());
+        out.writeLong(packet.getRequiredMemory());
+        out.writeInt(packet.getData().length);
+        out.write(packet.getData());
     }
 }

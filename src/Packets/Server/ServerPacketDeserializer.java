@@ -7,6 +7,8 @@ import java.io.IOException;
 import Packets.Deserializer;
 
 public class ServerPacketDeserializer implements Deserializer {
+    
+    @Override
     public Packet deserialize(DataInputStream in) throws IOException {
         ServerPacketType type = PacketType.deserialize(in, ServerPacketType.class);
         long id = in.readLong();
@@ -15,6 +17,7 @@ public class ServerPacketDeserializer implements Deserializer {
             case STATUS -> { return deserializeStatusPacket(id, in); }
             case JOB_RESULT -> { return deserializeJobResultPacket(id, in); }
             case INFO -> { return deserializeInfoPacket(id, in); }
+            case JOB -> { return deserializeJobPacket(id, in); }
             default -> { return null; }
         }
     }
@@ -45,5 +48,14 @@ public class ServerPacketDeserializer implements Deserializer {
         int nWorkers = in.readInt();
         int nWorkersWaiting = in.readInt();
         return new ServerInfoPacket(id, maxMemory, availableMemory, queueSize, nConnections, nWorkers, nWorkersWaiting);
+    }
+
+    private static Packet deserializeJobPacket(long id, DataInputStream in) throws IOException {
+        String clientName = in.readUTF();
+        long requiredMemory = in.readLong();
+        int dataLength = in.readInt();
+        byte[] data = new byte[dataLength];
+        in.readFully(data);
+        return new ServerJobPacket(id, clientName, requiredMemory, data);
     }
 }

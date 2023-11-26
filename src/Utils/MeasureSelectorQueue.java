@@ -1,5 +1,8 @@
 package Utils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 // This is a modified queue where elements are added at the end like a regular queue,
 // but when polling, elements are removed if they meet a specified condition.
 // If an element doesn't meet the condition, the queue is traversed sequentially
@@ -70,7 +73,6 @@ public class MeasureSelectorQueue<T extends Measurable> {
         }
     }
 
-
     public void add(T data) {
 
         if (this.length == this.cap)
@@ -100,8 +102,8 @@ public class MeasureSelectorQueue<T extends Measurable> {
             if (this.first.data.measure() <= measure) {
                 T data = this.first.data;
                 if (this.first != this.last) {
-                    this.first.prev = null;
                     this.first = this.first.next;
+                    this.first.prev = null;
                 } else {
                     this.first = this.last = null;
                 }
@@ -130,6 +132,33 @@ public class MeasureSelectorQueue<T extends Measurable> {
         }
         
         return null;
+    }
+
+    public List<T> removeIfGreater(long limit) {
+        List<T> collected = new ArrayList<>();
+        Node<T> current = this.first;
+        while (current != null) {
+            if (current.data.measure() > limit) {
+                if (current == this.first && current == this.last) {
+                    this.first = this.last = null;
+                } else if (current == this.first) {
+                    this.first = this.first.next;
+                    this.first.prev = null;
+                } else if (current == this.last) {
+                    this.last = this.last.prev;
+                    this.last.next = null;
+                } else {
+                    current.next.prev = current.prev;
+                    current.prev.next = current.next;
+                }
+
+                this.length--;
+                collected.add(current.data);
+                this.updateMin(current.data.measure());
+            }
+            current = current.next;
+        }
+        return collected;
     }
 }
 

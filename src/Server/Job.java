@@ -42,6 +42,10 @@ public class Job implements Measurable {
         return this.id;
     }
 
+    public byte[] getData() {
+        return this.data;
+    }
+
     public long measure() {
         return this.requiredMemory;
     }

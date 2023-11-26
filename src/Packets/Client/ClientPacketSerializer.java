@@ -7,6 +7,8 @@ import Packets.PacketType;
 import Packets.Serializer;
 
 public class ClientPacketSerializer implements Serializer {
+
+    @Override
     public void serialize(DataOutputStream out, Packet packet) throws IOException {
         PacketType.serialize(packet.getType(), out);
         out.writeLong(packet.getId());

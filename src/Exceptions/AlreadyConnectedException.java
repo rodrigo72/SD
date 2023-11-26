@@ -1,4 +1,4 @@
-package Exceptions.Registration;
+package Exceptions;
 
 public class AlreadyConnectedException extends RegistrationException {
     public AlreadyConnectedException(String message) {

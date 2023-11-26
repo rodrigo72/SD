@@ -5,7 +5,8 @@ import Packets.PacketType;
 public enum ServerPacketType implements PacketType {
     STATUS,
     JOB_RESULT,
-    INFO;
+    INFO,
+    JOB;
 
     public int getValue() {
         return this.ordinal();
