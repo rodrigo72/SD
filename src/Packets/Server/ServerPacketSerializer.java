@@ -50,12 +50,13 @@ public class ServerPacketSerializer implements Serializer {
     }
 
     private static void serializeInfoPacket(DataOutputStream out, ServerInfoPacket packet) throws IOException {
-        out.writeLong(packet.getMaxMemory());
-        out.writeLong(packet.getAvailableMemory());
+        out.writeLong(packet.getJobMemoryLimit());
+        out.writeLong(packet.getTotalMemory());
+        out.writeLong(packet.getMemoryUsed());
         out.writeInt(packet.getQueueSize());
         out.writeInt(packet.getNConnections());
         out.writeInt(packet.getNWorkers());
-        out.writeInt(packet.getNWorkersWaiting());
+        out.writeInt(packet.getNWaiting());
     }
 
     private static void serializeJobPacket(DataOutputStream out, ServerJobPacket packet) throws IOException {

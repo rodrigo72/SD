@@ -178,12 +178,13 @@ public class ClientConnection extends Connection {
 
         ServerInfoPacket packet = new ServerInfoPacket(
             id,
-            this.sharedState.getMaxMemory(),
-            this.sharedState.getAvailableMemory(),
+            this.sharedState.getJobMemoryLimit(),
+            this.sharedState.getTotalMemory(),
+            this.sharedState.getMemoryUsed(),
             this.sharedState.getQueueSize(),
             this.sharedState.getNConnections(),
             this.sharedState.getNWorkers(),
-            this.sharedState.getNWorkersWaiting()
+            this.sharedState.getNWaiting()
         );
 
         this.addPacketToQueue(packet);

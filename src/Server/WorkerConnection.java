@@ -142,7 +142,7 @@ public class WorkerConnection extends Connection {
                 else
                     packet2 = new ServerJobResultPacket(id, packet.getErrorMessage());
 
-                this.sharedState.sendJobResult(clientName, packet2);
+                this.sharedState.sendJobResult(clientName, packet2, requiredMemory);
             }            
         }
 

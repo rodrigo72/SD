@@ -3,35 +3,64 @@ package Packets.Server;
 import Packets.Packet;
 
 public class ServerInfoPacket extends Packet {
-    private final long maxMemory;
-    private final long availableMemory;
+    private final long jobMemoryLimit;
+    private final long totalMemory;
+    private final long memoryUsed;
     private final int queueSize;
     private final int nConnections;
     private final int nWorkers;
     private final int nWorkersWaiting;
 
-    public ServerInfoPacket(long id, long maxMemory, long availableMemory, 
-        int queueSize, int nConnections, int nWorkers, int nWorkersWaiting) {
+    public ServerInfoPacket(long id, long jobMemoryLimit, long totalMemory, long memoryUsed, int queueSize, int nConnections, int nWorkers, int nWaiting) {
         super(id, ServerPacketType.INFO);
-        this.maxMemory = maxMemory;
-        this.availableMemory = availableMemory;
+        this.jobMemoryLimit = jobMemoryLimit;
+        this.totalMemory = totalMemory;
+        this.memoryUsed = memoryUsed;
         this.queueSize = queueSize;
         this.nConnections = nConnections;
         this.nWorkers = nWorkers;
-        this.nWorkersWaiting = nWorkersWaiting;
+        this.nWorkersWaiting = nWaiting;
     }
 
-    public long getMaxMemory()          { return this.maxMemory; }
-    public long getAvailableMemory()    { return this.availableMemory; }
-    public int getQueueSize()           { return this.queueSize; }
-    public int getNConnections()        { return this.nConnections; }
-    public int getNWorkers()            { return this.nWorkers; }
-    public int getNWorkersWaiting()     { return this.nWorkersWaiting; }
+    public long getJobMemoryLimit() {
+        return this.jobMemoryLimit;
+    }
 
+    public long getTotalMemory() {
+        return this.totalMemory;
+    }
+
+    public long getMemoryUsed() {
+        return this.memoryUsed;
+    }
+
+    public int getQueueSize() {
+        return this.queueSize;
+    }
+
+    public int getNConnections() {
+        return this.nConnections;
+    }
+
+    public int getNWorkers() {
+        return this.nWorkers;
+    }
+
+    public int getNWaiting() {
+        return this.nWorkersWaiting;
+    }
+
+    @Override
     public String toString() {
-        return super.toString() + ", Max memory: " + this.maxMemory + ", Available memory: " 
-        + this.availableMemory + ", Queue size: " + this.queueSize + ", Nº connections: " 
-        + this.nConnections + ", Nº workers: " + this.nWorkers + ", Nº workers waiting: "
-        + this.nWorkersWaiting + " }";
+        return "ServerInfoPacket{" +
+                "jobMemoryLimit=" + jobMemoryLimit +
+                ", totalMemory=" + totalMemory +
+                ", memoryUsed=" + memoryUsed +
+                ", queueSize=" + queueSize +
+                ", nConnections=" + nConnections +
+                ", nWorkers=" + nWorkers +
+                ", nWorkersWaiting=" + nWorkersWaiting +
+                '}';
     }
+
 }

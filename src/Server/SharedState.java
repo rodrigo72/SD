@@ -17,6 +17,7 @@ public class SharedState {
 
     private long memoryLimit;
     private long memoryUsed;
+    private long totalMemory;
 
     private ReentrantLock ljobs;
     private MeasureSelectorQueue<Job> jobs;
@@ -38,6 +39,7 @@ public class SharedState {
     public SharedState() {
         this.memoryUsed = 0;
         this.nWaiting = 0;
+        this.totalMemory = 0;
 
         this.jobs = new MeasureSelectorQueue<>(1000);
         this.ljobs = new ReentrantLock();
@@ -78,6 +80,7 @@ public class SharedState {
 
             this.maxHeap.add(maxMemory);
             this.memoryLimit = this.maxHeap.peek();
+            this.totalMemory += maxMemory;
 
         } finally {
             this.ljobs.unlock();
@@ -87,6 +90,8 @@ public class SharedState {
     public void removeFromLimits(long maxMemory) {
         try {
             this.ljobs.lock();
+
+            this.totalMemory -= maxMemory;
 
             long newMax = -2;
             this.maxHeap.remove(maxMemory);
@@ -102,7 +107,7 @@ public class SharedState {
                 for (Job job : jobsRemovedFromQueue) {
                     Packet packet = new ServerJobResultPacket(job.getId(),
                         "Job requires more memory than the server can provide. (Worker disconnected).");
-                    this.sendJobResult(job.getClientName(), packet);
+                    this.sendJobResult(job.getClientName(), packet, 0);
                 }
             }
         } finally {
@@ -154,7 +159,7 @@ public class SharedState {
 
             if (job.getRequiredMemory() > this.memoryLimit) {
                 Packet packet = new ServerJobResultPacket(job.getId(), "Job requires more memory than the server can provide.");
-                this.sendJobResult(job.getClientName(), packet);
+                this.sendJobResult(job.getClientName(), packet, 0);
                 return;
             }
             
@@ -181,6 +186,9 @@ public class SharedState {
 
             Job job = this.jobs.poll(maxMemory);
             this.notFull.signal();
+
+            this.nWaiting -= 1;
+            this.memoryUsed += job.getRequiredMemory();
             
             return job;
         } catch (InterruptedException e) {
@@ -190,7 +198,8 @@ public class SharedState {
         }
     }
 
-    public void sendJobResult(String clientName, Packet packet) {
+    public void sendJobResult(String clientName, Packet packet, long memory) {
+
         try {
             this.lc.readLock().lock();
 
@@ -209,14 +218,25 @@ public class SharedState {
         } finally {
             this.lc.readLock().unlock();
         }
+        
+        try {
+            this.ljobs.lock();
+            this.memoryUsed -= memory;
+        } finally {
+            this.ljobs.unlock();
+        }
     }
 
-    public long getMaxMemory() {
+    public long getJobMemoryLimit() {
         return this.memoryLimit;
     }
 
-    public long getAvailableMemory() {
-        return this.memoryLimit - this.memoryUsed;
+    public long getTotalMemory() {
+        return this.totalMemory;
+    }
+
+    public long getMemoryUsed() {
+        return this.memoryUsed;
     }
 
     public int getQueueSize() {
@@ -231,7 +251,7 @@ public class SharedState {
         return this.workerConnections.size();
     }
 
-    public int getNWorkersWaiting() {
+    public int getNWaiting() {
         return this.nWaiting;
     }
 }

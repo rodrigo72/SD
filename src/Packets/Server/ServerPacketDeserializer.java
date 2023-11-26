@@ -41,13 +41,14 @@ public class ServerPacketDeserializer implements Deserializer {
     }
 
     private static Packet deserializeInfoPacket(long id, DataInputStream in) throws IOException {
-        long maxMemory = in.readLong();
-        long availableMemory = in.readLong();
+        long jobMemoryLimit = in.readLong();
+        long totalMemory = in.readLong();
+        long memoryUsed = in.readLong();
         int queueSize = in.readInt();
         int nConnections = in.readInt();
         int nWorkers = in.readInt();
-        int nWorkersWaiting = in.readInt();
-        return new ServerInfoPacket(id, maxMemory, availableMemory, queueSize, nConnections, nWorkers, nWorkersWaiting);
+        int nWaiting = in.readInt();
+        return new ServerInfoPacket(id, jobMemoryLimit, totalMemory, memoryUsed, queueSize, nConnections, nWorkers, nWaiting);
     }
 
     private static Packet deserializeJobPacket(long id, DataInputStream in) throws IOException {

@@ -111,7 +111,12 @@ public class Worker {
     public void stop() throws IOException {
         this.running = false;
         this.in.close();
-        this.hasJobs.signalAll();
+        try {
+            this.ljobs.lock();
+            this.hasJobs.signalAll();
+        } finally {
+            this.ljobs.unlock();
+        }
     }
 
     public void receive() {
@@ -175,6 +180,9 @@ public class Worker {
 
                 packet = this.jobs.poll();
 
+                if (packet == null)
+                    continue;
+
                 int timesWaited = 0;
                 boolean blocking = false;
                 long requiredMemory = packet.getRequiredMemory();
@@ -211,39 +219,37 @@ public class Worker {
                 this.ljobs.unlock();
             }
 
-            if (packet != null) {
-                WorkerJobResultPacket resultPacket = null;
-                try {
-                    byte[] output = JobFunction.execute(packet.getData());
-                    resultPacket = new WorkerJobResultPacket(packet.getId(), output, packet.getClientName());
-                } catch (JobFunctionException e) {
-                    resultPacket = new WorkerJobResultPacket(packet.getId(), e.getMessage(), packet.getClientName());
-                }
-                
-                System.out.println(resultPacket.toString());
+            WorkerJobResultPacket resultPacket = null;
+            try {
+                byte[] output = JobFunction.execute(packet.getData());
+                resultPacket = new WorkerJobResultPacket(packet.getId(), output, packet.getClientName());
+            } catch (JobFunctionException e) {
+                resultPacket = new WorkerJobResultPacket(packet.getId(), e.getMessage(), packet.getClientName());
+            }
+            
+            System.out.println(resultPacket.toString());
+
+            try {
+                this.lsend.lock();
+                this.serializer.serialize(out, resultPacket);
+                System.out.println("Result packet sent");
 
                 try {
-                    this.lsend.lock();
-                    this.serializer.serialize(out, resultPacket);
-                    System.out.println("Result packet sent");
-
-                    try {
-                        this.ljobs.lock();
-                        this.memoryUsed -= packet.getRequiredMemory();
-                        if (this.blocking) {
-                            this.hasBlocking.signal();
-                        } else {
-                            this.hasMemory.signal();
-                        }
-                    } finally {
-                        this.ljobs.unlock();
+                    this.ljobs.lock();
+                    this.memoryUsed -= packet.getRequiredMemory();
+                    if (this.blocking) {
+                        this.hasBlocking.signal();
+                    } else {
+                        this.hasMemory.signal();
                     }
-
-                } catch (IOException e) {
-                    this.running = false;
                 } finally {
-                    this.lsend.unlock();
+                    this.ljobs.unlock();
                 }
+
+            } catch (IOException e) {
+                this.running = false;
+            } finally {
+                this.lsend.unlock();
             }
 
         }
