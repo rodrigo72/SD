@@ -4,12 +4,16 @@ import java.net.Socket;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Queue;
+import java.util.LinkedList;
 import Packets.Worker.*;
 import Packets.Packet;
 import Packets.Server.ServerJobPacket;
 import Packets.Server.ServerPacketDeserializer;
 import Packets.Server.ServerPacketType;
 import sd23.*;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.Condition;
 
 public class Worker {
     private long nextID;
@@ -21,8 +25,19 @@ public class Worker {
     private final long maxMemory;
     private boolean running;
     private Thread thread;
+    private Queue<ServerJobPacket> jobs;
+    private ReentrantLock ljobs;
+    private Thread[] workerThreads;
+    private int nWorkerThreads;
+    private Condition hasJobs;
+    private Condition hasMemory; // for safety, the server only sends jobs if the worker has memory available for it (!)
+    private Condition hasBlocking;
+    private ReentrantLock lsend;
+    private long memoryUsed;
+    private boolean blocking;
+    private final int maxTimesWaited;
 
-    public Worker(String address, int port, long maxMemory) throws IOException {
+    public Worker(String address, int port, long maxMemory, int nWorkerThreads) throws IOException {
         this.socket = new Socket(address, port);
         this.in = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
@@ -33,6 +48,16 @@ public class Worker {
         this.deserializer = new ServerPacketDeserializer();
         this.hook(socket);
         this.thread = null;
+        this.jobs = new LinkedList<>();
+        this.ljobs = new ReentrantLock();
+        this.hasJobs = this.ljobs.newCondition();
+        this.hasMemory = this.ljobs.newCondition();
+        this.hasBlocking = this.ljobs.newCondition();
+        this.workerThreads = new Thread[nWorkerThreads];
+        this.nWorkerThreads = nWorkerThreads;
+        this.lsend = new ReentrantLock();
+        this.memoryUsed = 0L;
+        this.maxTimesWaited = 3;
     }
 
     private void hook(Socket socket) {
@@ -47,6 +72,15 @@ public class Worker {
                 }
             }
         });
+    }
+
+    public void runAllWorkerThreads() {
+        for (int i = 0; i < this.nWorkerThreads; i++)
+            this.workerThreads[i] = new Thread(() -> this.runWorker());
+
+        for (int i = 0; i < this.nWorkerThreads; i++)
+            this.workerThreads[i].start();
+
     }
 
     private long getNextID() {
@@ -77,6 +111,7 @@ public class Worker {
     public void stop() throws IOException {
         this.running = false;
         this.in.close();
+        this.hasJobs.signalAll();
     }
 
     public void receive() {
@@ -87,6 +122,8 @@ public class Worker {
             } catch (IOException e) {
                 return;
             }
+
+            this.runAllWorkerThreads();
 
             this.thread = new Thread(() -> {
                 while(this.running) {
@@ -107,22 +144,14 @@ public class Worker {
 
                             System.out.println("JOB packet received");
 
-                            WorkerJobResultPacket resultPacket = null;
                             try {
-                                byte[] output = JobFunction.execute(packet.getData());
-                                resultPacket = new WorkerJobResultPacket(packet.getId(), output, packet.getClientName());
-                            } catch (JobFunctionException e) {
-                                resultPacket = new WorkerJobResultPacket(packet.getId(), e.getMessage(), packet.getClientName());
+                                this.ljobs.lock();
+                                this.jobs.add(packet);
+                                this.hasJobs.signal();
+                            } finally {
+                                this.ljobs.unlock();
                             }
-                            
-                            System.out.println(resultPacket.toString());
 
-                            try {
-                                this.serializer.serialize(out, resultPacket);
-                                System.out.println("Result packet sent");
-                            } catch (IOException e) {
-                                this.running = false;
-                            }
                         }
                         default -> {
                             // nothing
@@ -131,6 +160,92 @@ public class Worker {
                 }
             });
             this.thread.start();
+        }
+    }
+
+    private void runWorker() {
+        while (this.running) {
+            ServerJobPacket packet;
+            try {
+                this.ljobs.lock();
+
+                while(this.jobs.isEmpty() && this.running) {
+                    this.hasJobs.await();
+                }
+
+                packet = this.jobs.poll();
+
+                int timesWaited = 0;
+                boolean blocking = false;
+                long requiredMemory = packet.getRequiredMemory();
+
+                // This loop is not necessary because the server only sends JobPackets when the worker has enough memory to handle them.
+                // So, in the current implementation, a scenario where memory is insufficient to execute a job is unlikely.
+                // However, if the server logic changes in the future, maintaining this check ensures the worker continues to function correctly.
+                // (will also prevent starvation with the maxTimesWaited and blocking condition)
+
+                while (requiredMemory + this.memoryUsed > this.maxMemory && this.running && (this.blocking && !blocking)) {
+                    if (this.blocking) {
+                        this.hasBlocking.await();
+                    } else {
+                        this.hasMemory.await();
+                    }
+
+                    timesWaited += 1;
+
+                    if (!this.blocking && timesWaited > this.maxTimesWaited) {
+                        blocking = true;
+                        this.blocking = true;
+                    }
+                }
+
+                if (blocking)   
+                    this.blocking = false;
+
+                this.memoryUsed += requiredMemory;
+
+            } catch (InterruptedException e) {
+                System.out.println(e.getMessage());
+                packet = null;
+            } finally {
+                this.ljobs.unlock();
+            }
+
+            if (packet != null) {
+                WorkerJobResultPacket resultPacket = null;
+                try {
+                    byte[] output = JobFunction.execute(packet.getData());
+                    resultPacket = new WorkerJobResultPacket(packet.getId(), output, packet.getClientName());
+                } catch (JobFunctionException e) {
+                    resultPacket = new WorkerJobResultPacket(packet.getId(), e.getMessage(), packet.getClientName());
+                }
+                
+                System.out.println(resultPacket.toString());
+
+                try {
+                    this.lsend.lock();
+                    this.serializer.serialize(out, resultPacket);
+                    System.out.println("Result packet sent");
+
+                    try {
+                        this.ljobs.lock();
+                        this.memoryUsed -= packet.getRequiredMemory();
+                        if (this.blocking) {
+                            this.hasBlocking.signal();
+                        } else {
+                            this.hasMemory.signal();
+                        }
+                    } finally {
+                        this.ljobs.unlock();
+                    }
+
+                } catch (IOException e) {
+                    this.running = false;
+                } finally {
+                    this.lsend.unlock();
+                }
+            }
+
         }
     }
     

@@ -49,7 +49,7 @@ public class WorkerController {
                     port = Integer.parseInt(portStr);
 
                 try {
-                    this.worker = new Worker(address, port, memoryLimit);
+                    this.worker = new Worker(address, port, memoryLimit, 2);
                     break;
                 } catch (IOException e) {
                     this.view.error();
