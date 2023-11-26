@@ -30,7 +30,7 @@ public class Worker {
     private Thread[] workerThreads;
     private int nWorkerThreads;
     private Condition hasJobs;
-    private Condition hasMemory; // for safety, the server only sends jobs if the worker has memory available for it (!)
+    private Condition hasMemory;
     private Condition hasBlocking;
     private ReentrantLock lsend;
     private long memoryUsed;
@@ -187,7 +187,7 @@ public class Worker {
                 boolean blocking = false;
                 long requiredMemory = packet.getRequiredMemory();
 
-                // This loop is not necessary because the server only sends JobPackets when the worker has enough memory to handle them.
+                // This loop is not strictly necessary because the server only sends JobPackets when the worker has enough memory to handle them.
                 // So, in the current implementation, a scenario where memory is insufficient to execute a job is unlikely.
                 // However, if the server logic changes in the future, maintaining this check ensures the worker continues to function correctly.
                 // (will also prevent starvation with the maxTimesWaited and blocking condition)
