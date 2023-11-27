@@ -87,13 +87,13 @@ Os clientes enviam pacotes do tipo #emph("Registration, Login, Job,") e #emph("S
 #[
   #set text(size:9pt)
 - Registration e Login
-  - #emph("Name:") Nome único do cliente. (Tamanho variável).
-  - #emph("Password:") Palavra-passe relativa ao registo. (Tamanho variável).
+  - #emph("Name:") Nome único do cliente (tamanho variável)
+  - #emph("Password:") Palavra-passe relativa ao registo (tamanho variável)
 - Logout
 - Job request
-  - #emph("Required memory:") Memória necessária para executar o código da tarefa. (8 bytes).
-  - #emph("Data length:") Comprimento do array de bytes. (8 bytes).
-  - #emph("Data:") Array de bytes que representa o código da tarefa. (Tamanho variável).
+  - #emph("Required memory:") Memória necessária para executar o código da tarefa (8 bytes)
+  - #emph("Data length:") Comprimento do array de bytes (8 bytes)
+  - #emph("Data:") Array de bytes que representa o código da tarefa (tamanho variável)
 - Status request
 ]
 == Server packets
@@ -102,43 +102,44 @@ O servidor principal é responsável por receber e gerir os pedidos de registo, 
 
 #[
   #set text(size:9pt)
-- Information
-  - #emph("Memory limit:") Limite máximo de memória que uma tarefa pode ter. (8 bytes).
-  - #emph("Total memory:") Memória total, isto é, a soma da memória dos servidores conectados. (8 bytes).
-  - #emph("Used memory:") Memória a ser utilizada pelos servidores. (8 bytes).
-  - #emph("Queue size:") Tamanho da fila de tarefas. (4 bytes)
-  - #emph("Nº connections:") Número de clientes conectados. (4 bytes).
-  - #emph("Nº workers") Número de servidores conectados. (4 bytes).
-  - #emph("Nº workers waiting:") Número de servidores à espera de tarefas. (4 bytes).
+- Information (enviado para os clientes)
+  - #emph("Memory limit:") Limite máximo de memória que uma tarefa pode ter (8 bytes)
+  - #emph("Total memory:") Memória total, isto é, a soma da memória dos servidores conectados (8 bytes)
+  - #emph("Used memory:") Memória a ser utilizada pelos servidores (8 bytes)
+  - #emph("Queue size:") Tamanho da fila de tarefas (4 bytes)
+  - #emph("Nº connections:") Número de clientes conectados (4 bytes)
+  - #emph("Nº workers") Número de servidores conectados (4 bytes)
+  - #emph("Nº workers waiting:") Número de servidores à espera de tarefas (4 bytes)
 - Job request (enviado para os #emph("workers"))
-  - #emph("Client name:") Nome do cliente que enviou o pedido de execução da tarefa. (Tamanho variável).
-  - #emph("Required memory:") Memória necessária para executar o código. (8 bytes)
-  - #emph("Data length:") Comprimento do array de bytes. (8 bytes).
-  - #emph("Data:") Array de bytes que representa o código da tarefa. 
-- Job result
-  - #emph("Result status:") Identifica se foi possível executar a tarefa. (4 bytes)
-  - #emph("Error message:") Caso não tenha sido possível executar a tarefa, é enviada a mensagem de erro produzida. (Tamanho variável)
-  - #emph("Data length:") Tamanho do output produzido. (8 bytes).
-  - #emph("Data:") Array de bytes do output. (Tamanho variável).
-- Status
-  - #emph("Status:") Identificador do estado em relação a um pedido do cliente. (4 bytes) 
+  - #emph("Client name:") Nome do cliente que enviou o pedido de execução da tarefa (tamanho variável)
+  - #emph("Required memory:") Memória necessária para executar o código (8 bytes)
+  - #emph("Data length:") Comprimento do array de bytes (8 bytes)
+  - #emph("Data:") Array de bytes que representa o código da tarefa (tamanho variável)
+- Job result (enviado para os clientes)
+  - #emph("Result status:") Indica se foi possível executar a tarefa (4 bytes)
+  - #emph("Error message:") Caso não tenha sido possível executar a tarefa, é enviada a mensagem de erro produzida (tamanho variável)
+  - #emph("Data length:") Tamanho do output produzido (8 bytes)
+  - #emph("Data:") Array de bytes do output (tamanho variável)
+- Status (enviado para os clientes)
+  - #emph("Status:") Identificador do estado de um pedido do cliente (4 bytes)
 ]
 
 == Worker packets
 
-Um worker envia inicialmente um pedido de #emph("Connection"), e é responsável por receber pedidos de execução de tarefas, executar as tarefas e enviar os resultados para o servidor principal. Por fim, envia um pedido de #emph("Disconnection"), para informar o servidor principal que deixa de estar disponível.
+Um #emph("worker") envia inicialmente um pedido de #emph("Connection"), e é responsável por receber pedidos de execução de tarefas, executar as tarefas e enviar os resultados para o servidor principal. Por fim, envia um pedido de #emph("Disconnection"), para informar o servidor principal que deixa de estar disponível.
 
 #[
   #set text(size:9pt)
 - Connection
-  - #emph("Memory:") Memória disponível do servidor para a execução de tarefas.
+  - #emph("Memory:") Memória disponível do servidor para a execução de tarefas. (8 bytes)
+  - #emph("Nº threads:") Número de worker threads. (4 bytes)
 - Disconnection
 - Job Result
-  - #emph("Client name:") Nome do cliente que pediu a execução da tarefa. (Tamanho variável).
-  - #emph("Result status:") Identifica se foi possível executar a tarefa. (4 bytes)
-  - #emph("Error message:") Caso não tenha sido possível executar a tarefa, é enviada a mensagem de erro produzida. (Tamanho variável)
-  - #emph("Data length:") Tamanho do output produzido. (8 bytes).
-  - #emph("Data:") Array de bytes do output. (Tamanho variável).
+  - #emph("Client name:") Nome do cliente que pediu a execução da tarefa (tamanho variável)
+  - #emph("Result status:") Identifica se foi possível executar a tarefa (4 bytes)
+  - #emph("Error message:") Caso não tenha sido possível executar a tarefa, é enviada a mensagem de erro produzida (tamanho variável)
+  - #emph("Data length:") Tamanho do output produzido (8 bytes)
+  - #emph("Data:") Array de bytes do output (tamanho variável)
 ]
 
 = Implementação
@@ -147,6 +148,8 @@ Um worker envia inicialmente um pedido de #emph("Connection"), e é responsável
 
 A classe `Client` implementa a seguinte interface, #emph("ClientAPI"):
 
+#[
+  #set text(size: 8pt)
 ```java
 public interface ClientAPI {
     void createRegistration(String name, String password);
@@ -162,12 +165,49 @@ public interface ClientAPI {
     void exit() throws IOException;
 }
 ```
+]
 
-Para além disso, possui os atributos `ClientPacketSerializer` que utiliza para serializar e enviar mensagens para o servidor, `ServerPacketDeserializer` que utiliza para deserializar as mensagens que recebe do servidor, `Demultiplixer` que utiliza para receber mensagens do servidor, organizando-as por ID, permitindo que se espere por uma ou mais mensagens com um ID específico, entre outros.
+Para além disso, possui os atributos: `ClientPacketSerializer` que utiliza para serializar e enviar mensagens para o servidor; `ServerPacketDeserializer` que utiliza para deserializar as mensagens que recebe do servidor; `Demultiplixer` que utiliza para receber mensagens do servidor, organizando-as por ID, permitindo que se espere por uma ou mais mensagens com um ID específico; `JobManager` que utiliza para ler a diretoria com o código das tarefas, e para guardar os resultados recebidos em ficheiros numa dada diretoria; entre outros.
 
 Na implementação, não foi necessário receber mais do que uma mensagem com o mesmo ID. Apesar disso, optamos por utilizar uma `ConditionQueue<Packet>` para cada ID como uma medida proativa para garantir flexibilidade.
 
 == Server
+
+=== Conexões
+
+O servidor principal possui dois tipos de conexões, conexões com clientes e conexões com #emph("workers").
+
+=== Gestão das tarefas
+
+==== Worker server: Measure Selector Queue
+
+Nesta versão, utilizamos uma `queue` personalizada a que chamaos `MeasureSelectorQueue`: uma lista duplamente ligada, que adiciona elementos no fim e retira do início, tendo em conta uma determinada condição (se o elemento não verificar a condição a lista é percorrida sequencialmente do primeiro ao último elemento até encontrar um elemento correspondente), e mantém uma `min-heap`.
+
+Uma classe chamada `SharedState` gere essa fila, e as instâncias de `WorkerConnection` fazem `dequeue`dessa fila, passando como argumento o seu limite de memória. As `WorkerConnection` adquirem uma tarefa quando têm memória suficiente, e quando conseguem obter uma `lock`.
+
+```java
+// Na classe WorkerConnection
+Job job = this.sharedState.dequeueJob(this.maxMemory);
+// ...
+while (job.getRequiredMemory() + this.memoryUsed > this.maxMemory)
+  this.hasMemory.await();
+
+// Na classe SharedState
+public Job dequeueJob(long maxMemory) {
+  try {
+      this.ljobs.lock();
+
+      while (jobs.isEmpty(maxMemory))
+          this.hasJobs.await();
+
+      Job job = this.jobs.poll(maxMemory);
+      this.notFull.signal();
+      // ...
+  } finally { this.ljobs.unlock(); }
+}
+```
+
+==== Worker server: Ordered Queue
 
 == Worker
 

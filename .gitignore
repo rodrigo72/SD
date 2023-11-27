@@ -10,7 +10,7 @@
 *.war
 *.ear
 !/JobExamples/*.class
-!/JarFiles/*.jar
+!/JarFiles/**/*.jar
 # Maven target directory
 target/
 
