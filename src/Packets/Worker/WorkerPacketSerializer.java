@@ -31,6 +31,7 @@ public class WorkerPacketSerializer implements Serializer {
     
     private static void serializeConnectionPacket(DataOutputStream out, WorkerConnectionPacket packet) throws IOException {
         out.writeLong(packet.getMaxMemory());
+        out.writeInt(packet.getNThreads());
     }
 
     private static void serializeJobResultPacket(DataOutputStream out, WorkerJobResultPacket packet) throws IOException {

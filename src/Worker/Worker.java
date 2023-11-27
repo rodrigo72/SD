@@ -89,7 +89,7 @@ public class Worker {
 
     public long sendConnectionPacket() throws IOException {
         long id = this.getNextID();
-        WorkerConnectionPacket packet = new WorkerConnectionPacket(id, this.maxMemory);
+        WorkerConnectionPacket packet = new WorkerConnectionPacket(id, this.maxMemory, this.nWorkerThreads);
         serializer.serialize(out, packet);
         return id;
     }

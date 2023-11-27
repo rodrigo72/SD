@@ -14,23 +14,27 @@ import Packets.Worker.WorkerPacketType;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Queue;
+import java.util.ArrayDeque;
 
 public class WorkerConnection extends Connection {
 
+    private int nThreads;
     private long maxMemory;
     private long memoryUsed;
     private Thread workThread;
-    private ReentrantLock lmem;
-    private Condition hasMemory;
+    private ReentrantLock ljobs;
+    private Condition hasJobs;
     private Map<String, Map<Long, Long>> jobsRequiredMemory;
     private boolean working;
     private boolean running;
+    private Queue<Job> jobs;
 
     public WorkerConnection(SharedState sharedState, Socket socket, boolean debug) {
         super(sharedState, socket, debug);
 
+        this.nThreads = 0;
         this.maxMemory = -1;
-        this.memoryUsed = 0L;
         this.working = false;
         this.running = false;
         this.setDeserializer(new WorkerPacketDeserializer());
@@ -38,15 +42,25 @@ public class WorkerConnection extends Connection {
         this.startOutputThread();
         this.workThread = new Thread(() -> this.work());
 
-        this.lmem = new ReentrantLock();
-        this.hasMemory = this.lmem.newCondition();
+        this.ljobs = new ReentrantLock();
+        this.hasJobs = this.ljobs.newCondition();
 
         this.jobsRequiredMemory = new HashMap<>();
+        this.jobs = new ArrayDeque<>();
+    }
+
+    public void enqueueJob(Job job) {
+        try {
+            this.ljobs.lock();
+            this.jobs.add(job);
+            this.hasJobs.signal();
+        } finally {
+            this.ljobs.unlock();
+        }
     }
 
     @Override
     public void run() {
-
         try {
             this.running = true;
             this.threadId = Thread.currentThread().getId();
@@ -67,13 +81,13 @@ public class WorkerConnection extends Connection {
                         this.handleJobResultPackeet(p, id);
                     }
                     case DISCONNECTION -> {
-                        this.sharedState.removeFromLimits(this.maxMemory);
+                        this.sharedState.removeFromLimits(this.maxMemory, this.memoryUsed, this.threadId);
                         this.running = false;
                         try {
-                            this.lmem.lock();
-                            this.hasMemory.signal();
+                            this.ljobs.lock();
+                            this.hasJobs.signal();
                         } finally {
-                            this.lmem.unlock();
+                            this.ljobs.unlock();
                         }
                         this.sharedState.removeWorkerConnection(this.threadId);
                     }
@@ -86,7 +100,7 @@ public class WorkerConnection extends Connection {
             if (this.debug)
                 System.out.println("Worker connection: " + e.getMessage());
 
-            this.sharedState.removeFromLimits(this.maxMemory);
+            this.sharedState.removeFromLimits(this.maxMemory, this.memoryUsed, this.threadId);
             this.sharedState.removeWorkerConnection(this.threadId);
 
             try {
@@ -106,7 +120,8 @@ public class WorkerConnection extends Connection {
 
         WorkerConnectionPacket packet = (WorkerConnectionPacket) p;
         this.maxMemory = packet.getMaxMemory();
-        this.sharedState.addToLimits(this.maxMemory);
+        this.nThreads = packet.getNThreads();
+        this.sharedState.addToLimits(this.maxMemory, this.threadId, this.nThreads);
         if (!this.working) {
             this.working = true;
             this.workThread.start();
@@ -128,21 +143,17 @@ public class WorkerConnection extends Connection {
         if (innerMap != null) {
             Long requiredMemory = innerMap.remove(id);
             if (requiredMemory != null) {
-                try {
-                    this.lmem.lock();
-                    this.memoryUsed -= requiredMemory;
-                    this.hasMemory.signal();
-                } finally {
-                    this.lmem.unlock();
-                }
 
                 Packet packet2 = null;
                 if (packet.getStatus() == WorkerJobResultPacket.ResultStatus.SUCCESS)
                     packet2 = new ServerJobResultPacket(id, packet.getData());
                 else
                     packet2 = new ServerJobResultPacket(id, packet.getErrorMessage());
+                
+                if (this.debug)
+                    System.out.println("Sending job result packet");
 
-                this.sharedState.sendJobResult(clientName, packet2, requiredMemory);
+                this.sharedState.sendJobResult(clientName, packet2, requiredMemory, this.threadId);
             }            
         }
 
@@ -150,23 +161,14 @@ public class WorkerConnection extends Connection {
 
     public void work() {
         while (this.running) {
-            Job job = this.sharedState.dequeueJob(this.maxMemory);
-            if (job == null)
-                continue;
-
             try {
-                this.lmem.lock();
+                this.ljobs.lock();
+
+                while (this.jobs.isEmpty())
+                    this.hasJobs.await();
+
+                Job job = this.jobs.poll();
                 
-                while (job.getRequiredMemory() + this.memoryUsed > this.maxMemory && this.running)
-                    this.hasMemory.await();
-
-                if (!this.running) {
-                    this.sharedState.enqueueJob(job);
-                    return;
-                }
-
-                this.memoryUsed += job.getRequiredMemory();
-
                 String clientName = job.getClientName();
                 long packetId = job.getId();
                 long requiredMemory = job.getRequiredMemory();
@@ -183,11 +185,11 @@ public class WorkerConnection extends Connection {
                     System.out.println("Worker connection added packet to queue.");
 
                 this.addPacketToQueue(packet);
-                
+
             } catch (InterruptedException e) {
                 continue;
             } finally {
-                this.lmem.unlock();
+                this.ljobs.unlock();
             }
         }
     }

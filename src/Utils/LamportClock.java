@@ -3,7 +3,8 @@ package Utils;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-// NOT USED (yet) -- update: was not used in the final version of the project
+// NOT USED: was not used in the final version of the project
+
 public class LamportClock {
     private long timestamp;
     private final ReadWriteLock l;

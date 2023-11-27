@@ -3,6 +3,8 @@ package Utils;
 import java.util.ArrayList;
 import java.util.List;
 
+// NOT USED: was not used in the final version of the project
+
 // This is a modified queue where elements are added at the end like a regular queue,
 // but when polling, elements are removed if they meet a specified condition.
 // If an element doesn't meet the condition, the queue is traversed sequentially

@@ -37,7 +37,8 @@ public class WorkerPacketDeserializer implements Deserializer {
 
     private static Packet deserializeConnectionPacket(long id, DataInputStream in) throws IOException {
         long maxMemory = in.readLong();
-        return new WorkerConnectionPacket(id, maxMemory);
+        int nThreads = in.readInt();
+        return new WorkerConnectionPacket(id, maxMemory, nThreads);
     }
 
     private static Packet deserializeJobResultPacket(long id, DataInputStream in) throws IOException {
