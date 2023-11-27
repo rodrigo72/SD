@@ -29,6 +29,7 @@
   // The path to a bibliography file if you want to cite some external
   // works.
   bibliography-file: none,
+  bibliography-full: false,
 
   // The document's content.
   body,
@@ -213,7 +214,7 @@
     v(25pt, weak: true)
     show bibliography: set text(8.5pt)
     show bibliography: pad.with(x: 0.5pt)
-    bibliography(bibliography-file)
+    bibliography(bibliography-file, full: bibliography-full)
   }
 
   // The thing ends with details about the authors.
