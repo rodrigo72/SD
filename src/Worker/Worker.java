@@ -240,7 +240,7 @@ public class Worker {
                     if (this.blocking) {
                         this.hasBlocking.signal();
                     } else {
-                        this.hasMemory.signal();
+                        this.hasMemory.signalAll();
                     }
                 } finally {
                     this.ljobs.unlock();
