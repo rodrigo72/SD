@@ -5,12 +5,9 @@
 *.log
 
 # Package files
-*.jar
-!sd23.jar
 *.war
 *.ear
 !/JobExamples/*.class
-!/JarFiles/**/*.jar
 # Maven target directory
 target/
 
